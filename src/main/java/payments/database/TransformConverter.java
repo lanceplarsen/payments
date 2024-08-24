@@ -25,6 +25,7 @@ public class TransformConverter implements AttributeConverter<String, String> {
 	@Autowired(required = false)
 	VaultOperations vaultOperations;
 
+	@SuppressWarnings("null")
 	@Override
 	public String convertToDatabaseColumn(String cc) {
 

@@ -27,6 +27,7 @@ public class CreditCardToMapConverter implements Converter<CreditCard, Map<Strin
 	@Value("${app.encryption.key:payments}")
 	private String key;
 
+	@SuppressWarnings("null")
 	@Override
 	public Map<String, byte[]> convert(CreditCard source) {
 

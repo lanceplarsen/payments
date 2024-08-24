@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.opentracing.Span;
 import io.opentracing.Tracer;
-import io.opentracing.Tracer.SpanBuilder;
 import payments.ConditionOnMissingQueueAndDB;
 import payments.model.PaymentRequest;
 import payments.model.PaymentResponse;
