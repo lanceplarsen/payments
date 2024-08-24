@@ -1,4 +1,4 @@
-package queue;
+package payments.queue;
 
 import java.util.Arrays;
 

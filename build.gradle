@@ -30,6 +30,22 @@ bootJar {
     archiveVersion =  '0.0.16'
 }
 
+dependencyLocking {
+    lockFile = file("$projectDir/gradle.lockfile")
+}
+
+configurations {
+    compileClasspath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+    runtimeClasspath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+    annotationProcessor {
+        resolutionStrategy.activateDependencyLocking()
+    }
+}
+
 dependencies {
     implementation('org.springframework.boot:spring-boot-starter-web')
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'

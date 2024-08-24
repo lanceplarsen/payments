@@ -1,4 +1,4 @@
-package database;
+package payments.database;
 
 import javax.sql.DataSource;
 

@@ -1,46 +1,43 @@
-package payments;
+package payments.controller;
 
 import java.util.HashMap;
-
-import javax.persistence.EntityManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import database.DBPayment;
-import database.DBPaymentRepository;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
+import payments.model.PaymentRequest;
+import payments.model.PaymentResponse;
+import payments.queue.CreditCard;
+import payments.queue.QueuePaymentRepository;
+import payments.queue.RedisPayment;
 
 @RestController
 @Component
-@EntityScan("database")
-@EnableJpaRepositories("database")
-@ComponentScan(basePackages = "database")
-@ConditionalOnProperty(value = "app.storage", havingValue = "db", matchIfMissing = false)
-public class DBPaymentController {
+@EntityScan("queue")
+@EnableRedisRepositories("queue")
+@ComponentScan(basePackages = "queue")
+@ConditionalOnProperty(value = "app.storage", havingValue = "redis", matchIfMissing = false)
+public class RedisPaymentController {
 
-	Logger logger = LoggerFactory.getLogger(DBPaymentController.class);
-	
+	Logger logger = LoggerFactory.getLogger(RedisPaymentController.class);
+
 	@Autowired
 	Tracer tracer;
 
 	@Autowired
-	private EntityManager entityManager;
-
-	@Autowired
-	DBPaymentRepository repo;
+	QueuePaymentRepository repo;
 
 	@PostMapping("/")
 	@ResponseBody
@@ -54,21 +51,24 @@ public class DBPaymentController {
 		logger.info("CC Expiration: {}", request.getExpiry());
 		logger.info("CC CVC: {}", request.getCvc());
 
+		// Get the card
+		CreditCard cc = new CreditCard();
+		cc.setType(request.getType());
+		cc.setNumber(request.getNumber());
+		cc.setExpiry(request.getExpiry());
+		cc.setCvc(request.getCvc());
+
 		// Log it - trace
 		Span cardSpan = tracer.buildSpan("process card").start();
-		
-		// Put the payment in the DB
-		DBPayment dbPayment = new DBPayment();
-		dbPayment.setName(request.getName());
-		dbPayment.setType(request.getType());
-		dbPayment.setNumber(request.getNumber());
-		dbPayment.setExpiry(request.getExpiry());
-		dbPayment.setCvc(request.getCvc());
-		repo.saveAndFlush(dbPayment);
-		entityManager.clear();
-		
+
+		// Put the payment in queue
+		RedisPayment payment = new RedisPayment();
+		payment.setName(request.getName());
+		payment.setCc(cc);
+		repo.save(payment);
+
 		// close span
-		String ccCipher = repo.findById(dbPayment.getId()).get().getNumber();
+		String ccCipher = repo.findById(payment.getId()).get().getCc().getNumber();
 		HashMap<String, String> cardSpanMap = new HashMap<>();
 		cardSpanMap.put("name", request.getName());
 		cardSpanMap.put("type", request.getType());
@@ -77,7 +77,7 @@ public class DBPaymentController {
 		cardSpan.log(cardSpanMap);
 		cardSpan.finish();
 
-		return new PaymentResponse(dbPayment.getId().toString(),
+		return new PaymentResponse(payment.getId().toString(),
 				"Payment processed successfully, card details returned for demo purposes, not for production",
 				request.getNumber(), ccCipher);
 	}

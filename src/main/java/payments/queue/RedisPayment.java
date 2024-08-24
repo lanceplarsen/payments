@@ -1,4 +1,4 @@
-package queue;
+package payments.queue;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.TypeAlias;

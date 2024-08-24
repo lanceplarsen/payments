@@ -1,8 +1,8 @@
-package payments;
+package payments.model;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 
-class PaymentResponse {
+public class PaymentResponse {
 
 	private String _id;
 	private String _message;
@@ -29,7 +29,7 @@ class PaymentResponse {
 		return _ciphertext;
 	}
 
-	PaymentResponse(String id, String message, String plaintext, String ciphertext) {
+	public PaymentResponse(String id, String message, String plaintext, String ciphertext) {
 		this._id = id;
 		this._message = message;
 		this._plaintext = plaintext;

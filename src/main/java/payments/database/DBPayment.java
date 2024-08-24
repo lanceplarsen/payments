@@ -1,4 +1,4 @@
-package database;
+package payments.database;
 
 import javax.persistence.Convert;
 import javax.persistence.Entity;

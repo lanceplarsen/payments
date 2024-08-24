@@ -1,4 +1,4 @@
-package payments;
+package payments.controller;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.Tracer.SpanBuilder;
+import payments.ConditionOnMissingQueueAndDB;
+import payments.model.PaymentRequest;
+import payments.model.PaymentResponse;
 
 @Conditional(ConditionOnMissingQueueAndDB.class)
 @RestController

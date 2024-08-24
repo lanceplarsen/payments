@@ -1,6 +1,6 @@
-package payments;
+package payments.model;
 
-class PaymentRequest {
+public class PaymentRequest {
 
 	private String name;
 	private String type;

@@ -1,4 +1,4 @@
-package queue;
+package payments.queue;
 
 public class CreditCard {
 
