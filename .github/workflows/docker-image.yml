@@ -50,7 +50,7 @@ jobs:
 
     - name: Build Docker image and tag with latest and semvar
       run: |
-       docker build -t ${CONTAINER_REGISTRY}/${NAME}:${VERSION} -t ${CONTAINER_REGISTRY}/${NAME}:latest .
+       docker build -t ${CONTAINER_REGISTRY}/${NAME}:latest -t ${CONTAINER_REGISTRY}/${NAME}:${VERSION} .
 
     - name: Download Wiz CLI
       run: curl -o wizcli https://wizcli.app.wiz.io/latest/wizcli && chmod +x wizcli
@@ -78,8 +78,8 @@ jobs:
 
     - name: Push Docker image to ECR (latest and semvar)
       run: |
-        docker push ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
         docker push ${CONTAINER_REGISTRY}/${NAME}:latest
+        docker push ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
 
     - name: Run Wiz CLI image tag
       run: sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
