@@ -47,11 +47,13 @@ jobs:
       run: |
         aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 767397794709.dkr.ecr.us-east-2.amazonaws.com
 
-    - name: Build Docker image
+    - name: Build Docker image and tag with latest and semvar
       run: |
-        docker build -t lanceplarsen/payments:latest .
+        docker build -t lanceplarsen/payments:latest -t lanceplarsen/payments:v0.0.16 .
         docker tag lanceplarsen/payments:latest 767397794709.dkr.ecr.us-east-2.amazonaws.com/lanceplarsen/payments:latest
+        docker tag lanceplarsen/payments:v0.0.16 767397794709.dkr.ecr.us-east-2.amazonaws.com/lanceplarsen/payments:v0.0.16
 
-    - name: Push Docker image to ECR
+    - name: Push Docker image to ECR (latest and semvar)
       run: |
         docker push 767397794709.dkr.ecr.us-east-2.amazonaws.com/lanceplarsen/payments:latest
+        docker push 767397794709.dkr.ecr.us-east-2.amazonaws.com/lanceplarsen/payments:v0.0.16
