@@ -48,6 +48,10 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Build Docker image and tag with latest and semvar
+      run: |
+       docker build -t ${CONTAINER_REGISTRY}/${NAME}:${VERSION} -t ${CONTAINER_REGISTRY}/${NAME}:latest .
+
     - name: Download Wiz CLI
       run: curl -o wizcli https://wizcli.app.wiz.io/latest/wizcli && chmod +x wizcli
 
@@ -72,11 +76,10 @@ jobs:
       run: |
         aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 767397794709.dkr.ecr.us-east-2.amazonaws.com
 
-    - name: Build Docker image and tag with latest and semvar
-      run: |
-        docker build -t ${CONTAINER_REGISTRY}/${NAME}:${VERSION} -t ${CONTAINER_REGISTRY}/${NAME}:latest .
-
     - name: Push Docker image to ECR (latest and semvar)
       run: |
         docker push ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
         docker push ${CONTAINER_REGISTRY}/${NAME}:latest
+
+    - name: Run Wiz CLI image tag
+      run: sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
