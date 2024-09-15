@@ -81,4 +81,6 @@ jobs:
         docker push ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
 
     - name: Run Wiz CLI image tag
-      run: sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
+      run: |
+        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:latest
+        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
