@@ -11,8 +11,8 @@ on:
       - main
 
 env:
-  CONTAINER_REGISTRY: 767397794709.dkr.ecr.us-east-2.amazonaws.com/lanceplarsen
   NAME: payments
+  CONTAINER_REGISTRY: 767397794709.dkr.ecr.us-east-2.amazonaws.com/lanceplarsen
   WIZ_CLIENT_ID: ${{ secrets.WIZ_CLIENT_ID }}
   WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
   WIZ_VULN_POLICY: "Default vulnerabilities policy"
@@ -77,9 +77,16 @@ jobs:
     - name: Wiz CLI image scan
       id: scan
       run: |-
-        sudo -E ./wizcli docker scan -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }} --sensitive-data --secrets --policy "$WIZ_SECRETS_POLICY" --policy "$WIZ_VULN_POLICY" --policy "$WIZ_SENSITIVE_DATA_POLICY" --policy-hits-only \
+        if [ "${{ env.VERSION }}" == "development" ]; then
+          IMAGE_TAG="latest"
+        else
+          IMAGE_TAG="${{ env.VERSION }}"
+        fi
+
+        sudo -E ./wizcli docker scan -i ${CONTAINER_REGISTRY}/${NAME}:$IMAGE_TAG --sensitive-data --secrets --policy "$WIZ_SECRETS_POLICY" --policy "$WIZ_VULN_POLICY" --policy "$WIZ_SENSITIVE_DATA_POLICY" --policy-hits-only \
         --driver mountWithLayers --dockerfile "./Dockerfile" --output wiz-output.json,sarif,true --tag github_action_run_id=${{ github.run_id }}
       continue-on-error: true
+
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
