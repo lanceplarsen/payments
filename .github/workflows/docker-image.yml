@@ -134,6 +134,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: spring-boot-payments-jar
+          path: build/libs/
   
       - name: Create GitHub Release
         id: create_release
