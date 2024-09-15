@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches:
       - main
@@ -11,7 +13,6 @@ on:
 env:
   CONTAINER_REGISTRY: 767397794709.dkr.ecr.us-east-2.amazonaws.com/lanceplarsen
   NAME: payments
-  VERSION: v0.0.17
   WIZ_CLIENT_ID: ${{ secrets.WIZ_CLIENT_ID }}
   WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
   WIZ_VULN_POLICY: "Default vulnerabilities policy"
@@ -30,26 +31,42 @@ jobs:
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
-        distribution: 'adopt'
+        distribution: 'corretto'
         java-version: '17'
+
+    - name: Determine Docker tags
+      id: get_version
+      run: |
+        if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          VERSION="${{ github.ref }}"  # Strip the 'refs/tags/' part
+          VERSION="${VERSION#refs/tags/}"
+        else
+          VERSION="development"  # Fallback version for non-tagged builds
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
 
     - name: Cache Gradle dependencies
       uses: actions/cache@v3
       with:
-        path: ~/.gradle/caches
+        path: ~/.gradle
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
 
     - name: Build with Gradle
       run: ./gradlew clean build
+      env:
+        VERSION: ${{ env.VERSION }} 
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build Docker image and tag with latest and semvar
+    - name: Build Docker image and tag with latest (and semver if release)
       run: |
-       docker build -t ${CONTAINER_REGISTRY}/${NAME}:latest -t ${CONTAINER_REGISTRY}/${NAME}:${VERSION} .
+        docker build -t ${CONTAINER_REGISTRY}/${NAME}:latest .
+        if [ "${{ env.VERSION }}" != "development" ]; then
+          docker tag ${CONTAINER_REGISTRY}/${NAME}:latest ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
+        fi
 
     - name: Download Wiz CLI
       run: curl -o wizcli https://wizcli.app.wiz.io/latest/wizcli && chmod +x wizcli
@@ -60,7 +77,7 @@ jobs:
     - name: Wiz CLI image scan
       id: scan
       run: |-
-        sudo -E ./wizcli docker scan -i ${CONTAINER_REGISTRY}/${NAME}:${VERSION} --sensitive-data --secrets --policy "$WIZ_SECRETS_POLICY" --policy "$WIZ_VULN_POLICY" --policy "$WIZ_SENSITIVE_DATA_POLICY" --policy-hits-only \
+        sudo -E ./wizcli docker scan -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }} --sensitive-data --secrets --policy "$WIZ_SECRETS_POLICY" --policy "$WIZ_VULN_POLICY" --policy "$WIZ_SENSITIVE_DATA_POLICY" --policy-hits-only \
         --driver mountWithLayers --dockerfile "./Dockerfile" --output wiz-output.json,sarif,true --tag github_action_run_id=${{ github.run_id }}
       continue-on-error: true
 
@@ -75,12 +92,35 @@ jobs:
       run: |
         aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 767397794709.dkr.ecr.us-east-2.amazonaws.com
 
-    - name: Push Docker image to ECR (latest and semvar)
+    - name: Push Docker image to ECR (latest and semver if release)
       run: |
         docker push ${CONTAINER_REGISTRY}/${NAME}:latest
-        docker push ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
+        if [ "${{ env.VERSION }}" != "development" ]; then
+          docker push ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
+        fi
 
     - name: Run Wiz CLI image tag
       run: |
         sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:latest
-        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${VERSION}
+        if [ "${{ env.VERSION }}" != "development" ]; then
+          sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
+        fi
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        name: Release ${{ github.ref }}
+        files: build/libs/*.jar
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

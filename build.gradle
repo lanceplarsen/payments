@@ -25,6 +25,8 @@ ext {
 }
 ext['log4j2.version'] = '2.16.0'
 
+version = System.getenv('VERSION') ?: 'unspecified'
+
 bootJar {
     archiveBaseName = 'spring-boot-payments'
     archiveVersion = ''
@@ -32,7 +34,7 @@ bootJar {
     manifest {
         attributes(
             'Implementation-Title': archiveBaseName,
-            'Implementation-Version': '0.0.17'
+            'Implementation-Version': version
         )
     }
 }
