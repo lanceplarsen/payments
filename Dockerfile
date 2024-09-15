@@ -1,7 +1,11 @@
-FROM openjdk:12-alpine
+FROM amazoncorretto:17-al2023-headless
 
-RUN apk add curl
+WORKDIR /app
 
-COPY ./build/libs/spring-boot-payments-0.0.16.jar .
+RUN dnf install -y curl && dnf clean all
 
-CMD ["java", "-jar", "./spring-boot-payments-0.0.16.jar"]
+COPY ./build/libs/spring-boot-payments.jar /app/spring-boot-payments.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "/app/spring-boot-payments.jar"]
