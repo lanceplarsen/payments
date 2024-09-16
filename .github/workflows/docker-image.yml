@@ -71,10 +71,6 @@ jobs:
         sudo -E ./wizcli docker scan -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }} --sensitive-data --secrets --policy "$WIZ_SECRETS_POLICY" --policy "$WIZ_VULN_POLICY" --policy "$WIZ_SENSITIVE_DATA_POLICY" --policy-hits-only \
         --driver mountWithLayers --dockerfile "./Dockerfile" --output wiz-output.json,sarif,true --tag github_action_run_id=${{ github.run_id }}
 
-    - name: Run Wiz CLI image tag
-      run: |
-        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}   
-
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -89,6 +85,10 @@ jobs:
     - name: Push Docker image to ECR
       run: |
         docker push ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}     
+
+    - name: Run Wiz CLI image tag
+      run: |
+        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}   
 
     - name: Upload JAR artifact
       uses: actions/upload-artifact@v3
