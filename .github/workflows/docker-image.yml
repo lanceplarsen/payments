@@ -2,8 +2,6 @@ name: Build, Package JAR, and Push Docker Image to ECR
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*.*.*'
   pull_request:
@@ -37,12 +35,8 @@ jobs:
     - name: Determine Docker tags
       id: get_version
       run: |
-        if [[ "${{ github.ref_type }}" == "tag" ]]; then
-          VERSION="${{ github.ref }}"  # Strip the 'refs/tags/' part
-          VERSION="${VERSION#refs/tags/}"
-        else
-          VERSION="development"  # Fallback version for non-tagged builds
-        fi
+        VERSION="${{ github.ref }}"  # Strip the 'refs/tags/' part
+        VERSION="${VERSION#refs/tags/}"
         echo "VERSION=$VERSION" >> $GITHUB_ENV
 
     - name: Cache Gradle dependencies
@@ -61,23 +55,17 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build Docker image and tag with latest (and semver if release)
+    - name: Build and Tag Docker Image
       run: |
-        docker build -t ${CONTAINER_REGISTRY}/${NAME}:latest .
-        if [ "${{ env.VERSION }}" != "development" ]; then
-          docker tag ${CONTAINER_REGISTRY}/${NAME}:latest ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
-        fi
+        docker build -t ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }} .
 
     - name: Download Wiz CLI
-      if: env.VERSION != 'development'  # Skip for development builds
       run: curl -o wizcli https://wizcli.app.wiz.io/latest/wizcli && chmod +x wizcli
 
     - name: Authenticate to Wiz
-      if: env.VERSION != 'development'  # Skip for development builds
       run: sudo -E ./wizcli auth --id "$WIZ_CLIENT_ID" --secret "$WIZ_CLIENT_SECRET"
 
     - name: Wiz CLI image scan
-      if: env.VERSION != 'development'  # Skip for development builds
       id: scan
       run: |-
         sudo -E ./wizcli docker scan -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }} --sensitive-data --secrets --policy "$WIZ_SECRETS_POLICY" --policy "$WIZ_VULN_POLICY" --policy "$WIZ_SENSITIVE_DATA_POLICY" --policy-hits-only \
@@ -93,27 +81,23 @@ jobs:
 
     - name: Log in to Amazon ECR
       run: |
-        aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 767397794709.dkr.ecr.us-east-2.amazonaws.com
+        aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin ${CONTAINER_REGISTRY}
 
-    - name: Push Docker image to ECR (latest and semver if release)
-      if: env.VERSION != 'development'  # Skip for development builds
+    - name: Push Docker image to ECR
       run: |
         docker push ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
 
     - name: Run Wiz CLI image tag
-      if: env.VERSION != 'development'  # Skip for development builds
       run: |
-        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
+        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}        
 
     - name: Upload JAR artifact
-      if: startsWith(github.ref, 'refs/tags/v')
       uses: actions/upload-artifact@v3
       with:
         name: spring-boot-payments-jar
         path: build/libs/*.jar
         
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
 
@@ -136,4 +120,3 @@ jobs:
           files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
