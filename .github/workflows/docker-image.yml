@@ -1,4 +1,4 @@
-name: Build, Package JAR, and Push Docker Image to ECR
+name: Build, Package JAR, Push Docker Image to ECR, and GitHub Release
 
 on:
   push:
