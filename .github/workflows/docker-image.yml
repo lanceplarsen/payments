@@ -84,11 +84,6 @@ jobs:
         --driver mountWithLayers --dockerfile "./Dockerfile" --output wiz-output.json,sarif,true --tag github_action_run_id=${{ github.run_id }}
       continue-on-error: true
 
-    - name: Run Wiz CLI image tag
-      if: env.VERSION != 'development'  # Skip for development builds
-      run: |
-        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
-
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -106,6 +101,11 @@ jobs:
         if [ "${{ env.VERSION }}" != "development" ]; then
           docker push ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
         fi
+
+    - name: Run Wiz CLI image tag
+      if: env.VERSION != 'development'  # Skip for development builds
+      run: |
+        sudo -E ./wizcli docker tag -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}
 
     - name: Upload JAR artifact
       if: startsWith(github.ref, 'refs/tags/v')
