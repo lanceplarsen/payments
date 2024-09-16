@@ -58,6 +58,21 @@ jobs:
     - name: Build and Tag Docker Image
       run: |
         docker build -t ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }} .
+  
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
+  
+    - name: Log in to Amazon ECR
+      run: |
+        aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin ${CONTAINER_REGISTRY}
+  
+    - name: Push Docker image to ECR
+      run: |
+        docker push ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}     
 
     - name: Download Wiz CLI
       run: curl -o wizcli https://wizcli.app.wiz.io/latest/wizcli && chmod +x wizcli
@@ -70,21 +85,6 @@ jobs:
       run: |-
         sudo -E ./wizcli docker scan -i ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }} --sensitive-data --secrets --policy "$WIZ_SECRETS_POLICY" --policy "$WIZ_VULN_POLICY" --policy "$WIZ_SENSITIVE_DATA_POLICY" --policy-hits-only \
         --driver mountWithLayers --dockerfile "./Dockerfile" --output wiz-output.json,sarif,true --tag github_action_run_id=${{ github.run_id }}
-
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-2
-
-    - name: Log in to Amazon ECR
-      run: |
-        aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin ${CONTAINER_REGISTRY}
-
-    - name: Push Docker image to ECR
-      run: |
-        docker push ${CONTAINER_REGISTRY}/${NAME}:${{ env.VERSION }}     
 
     - name: Run Wiz CLI image tag
       run: |
