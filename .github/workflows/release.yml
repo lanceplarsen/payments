@@ -77,6 +77,9 @@ jobs:
     - name: Authenticate to Wiz
       run: sudo -E ./wizcli auth --id "$WIZ_CLIENT_ID" --secret "$WIZ_CLIENT_SECRET"
 
+    - name: Wiz CLI IaC scan
+      run: sudo -E ./wizcli iac scan --path "." -p "$WIZ_IAC_POLICY" -o iac-scan-results.sarif,sarif,true --policy-hits-only --tag github_action_run_id=${{ github.run_id }} 
+
     - name: Wiz CLI image scan
       id: scan
       run: |-
