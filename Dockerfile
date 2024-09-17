@@ -1,14 +1,12 @@
 FROM amazoncorretto:17-al2023-headless
 
-RUN useradd -ms /bin/bash spring
-
 WORKDIR /app
 
 COPY ./build/libs/spring-boot-payments.jar /app/spring-boot-payments.jar
 
-RUN chown -R spring:spring /app
+RUN chown -R 1000:1000 /app
 
-USER spring
+USER 1000
 
 EXPOSE 8080
 
